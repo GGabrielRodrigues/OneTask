@@ -1,0 +1,35 @@
+{% extends 'core/base.html' %}
+
+{% block content %}
+<div class="row justify-content-center mt-5">
+    <div class="col-md-5">
+        <div class="card shadow border-0 rounded-3">
+            <div class="card-body p-5">
+                <h2 class="text-center mb-4" style="color: #0d6efd;">Entrar no OneTask</h2>
+                
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    {% if form.errors %}
+                        <div class="alert alert-danger">
+                            Usuário ou senha incorretos. Tente novamente.
+                        </div>
+                    {% endif %}
+                    
+                    <div class="mb-3">
+                        <label for="id_username" class="form-label">Usuário</label>
+                        <input type="text" name="username" id="id_username" class="form-control form-control-lg" required>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label for="id_password" class="form-label">Senha</label>
+                        <input type="password" name="password" id="id_password" class="form-control form-control-lg" required>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary btn-lg w-100">Acessar Sistema</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

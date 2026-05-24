@@ -1,0 +1,247 @@
+{% extends 'core/base.html' %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h3 class="mb-3 text-secondary">Relatório Gerencial</h3>
+    </div>
+    
+    <!-- Cards de Resumo -->
+    <div class="col-md-3 mb-3">
+        <div class="card bg-primary text-white shadow-sm h-100">
+            <div class="card-body">
+                <h5 class="card-title">Total</h5>
+                <h2 class="display-6">{{ total_tasks }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card bg-success text-white shadow-sm h-100">
+            <div class="card-body">
+                <h5 class="card-title">Concluídas</h5>
+                <h2 class="display-6">{{ completed_tasks }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card bg-warning text-dark shadow-sm h-100">
+            <div class="card-body">
+                <h5 class="card-title">Em Andamento</h5>
+                <h2 class="display-6">{{ in_progress_tasks }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card bg-danger text-white shadow-sm h-100">
+            <div class="card-body">
+                <h5 class="card-title">Pendentes</h5>
+                <h2 class="display-6">{{ pending_tasks }}</h2>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center py-3">
+                <h4 class="mb-0">Minhas Tarefas</h4>
+                <div>
+                    <a href="{% url 'task_create' %}" class="btn btn-primary">Nova Tarefa</a>
+                    <!-- O modal do GitHub será feito em breve -->
+                    <button class="btn btn-dark" data-bs-toggle="modal" data-bs-target="#githubModal">Importar do GitHub</button>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Título</th>
+                                <th>Status</th>
+                                <th>Origem</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for task in tasks %}
+                            <tr>
+                                <td>{{ task.title }}</td>
+                                <td>
+                                    <span class="badge 
+                                        {% if task.status == 'Concluída' %}bg-success
+                                        {% elif task.status == 'Em Andamento' %}bg-warning text-dark
+                                        {% else %}bg-danger{% endif %}">
+                                        {{ task.status }}
+                                    </span>
+                                </td>
+                                <td>
+                                    {% if task.origin == 'GitHub' %}
+                                        <span class="badge bg-dark"><i class="bi bi-github"></i> GitHub</span>
+                                        {% if task.external_url %}
+                                            <a href="{{ task.external_url }}" target="_blank" class="text-secondary ms-1" style="font-size: 0.8rem;">Ver</a>
+                                        {% endif %}
+                                    {% else %}
+                                        <span class="badge bg-secondary">Manual</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <a href="{% url 'task_update' task.id %}" class="btn btn-sm btn-outline-primary">Editar</a>
+                                    <a href="{% url 'task_delete' task.id %}" class="btn btn-sm btn-outline-danger">Excluir</a>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="4" class="text-center py-4 text-muted">
+                                    Nenhuma tarefa encontrada. Comece adicionando uma nova!
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- Modal GitHub Import -->
+<div class="modal fade" id="githubModal" tabindex="-1" aria-labelledby="githubModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content border-0 shadow">
+      <div class="modal-header bg-dark text-white">
+        <h5 class="modal-title" id="githubModalLabel"><i class="bi bi-github"></i> Importar do GitHub</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+            <label class="form-label">Repositório (Formato: dono/nome)</label>
+            <div class="input-group">
+                <input type="text" id="githubRepoInput" class="form-control" placeholder="ex: facebook/react">
+                <button class="btn btn-outline-dark" id="btnSearchGithub">Buscar Issues</button>
+            </div>
+            <div class="form-text">Buscamos as issues abertas no repositório informado.</div>
+        </div>
+        
+        <!-- Área de Loading/Feedback -->
+        <div id="githubStatus" class="text-center my-3" style="display: none;">
+            <div class="spinner-border text-dark" role="status"></div>
+            <p class="mt-2 text-muted" id="githubStatusText">Buscando tarefas no GitHub...</p>
+        </div>
+
+        <!-- Lista de Resultados -->
+        <div class="list-group" id="githubResultsList">
+            <!-- As issues aparecerão aqui via JavaScript -->
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const btnSearch = document.getElementById('btnSearchGithub');
+    const inputRepo = document.getElementById('githubRepoInput');
+    const statusDiv = document.getElementById('githubStatus');
+    const statusText = document.getElementById('githubStatusText');
+    const resultsList = document.getElementById('githubResultsList');
+    
+    // Obter o token CSRF gerado pelo Django (se houver form na tela ou do cookie)
+    // Para facilitar, vamos gerar uma string pura aqui
+    const csrfToken = '{{ csrf_token }}';
+
+    btnSearch.addEventListener('click', function() {
+        const repoPath = inputRepo.value.trim();
+        if(!repoPath || !repoPath.includes('/')) {
+            alert('Por favor, insira o dono e o repositório no formato: dono/repo');
+            return;
+        }
+
+        // Limpa lista e mostra loading
+        resultsList.innerHTML = '';
+        statusDiv.style.display = 'block';
+        statusText.innerText = 'Buscando tarefas no GitHub...';
+
+        fetch(`https://api.github.com/repos/${repoPath}/issues`)
+            .then(response => {
+                if(!response.ok) throw new Error('Repositório não encontrado ou limite de API excedido.');
+                return response.json();
+            })
+            .then(data => {
+                statusDiv.style.display = 'none';
+                
+                if(data.length === 0) {
+                    resultsList.innerHTML = '<div class="alert alert-info">Nenhuma issue aberta encontrada neste repositório.</div>';
+                    return;
+                }
+
+                // Renderiza cada issue encontrada
+                data.forEach(issue => {
+                    // Ignora Pull Requests (que também vêm no endpoint de issues)
+                    if(issue.pull_request) return;
+
+                    const listItem = document.createElement('div');
+                    listItem.className = 'list-group-item d-flex justify-content-between align-items-center flex-wrap gap-2';
+                    
+                    const titleDiv = document.createElement('div');
+                    titleDiv.innerHTML = `<strong>#${issue.number}</strong> ${issue.title} <br><small class="text-muted">Por ${issue.user.login}</small>`;
+                    
+                    const addBtn = document.createElement('button');
+                    addBtn.className = 'btn btn-sm btn-dark';
+                    addBtn.innerText = 'Adicionar ao OneTask';
+                    addBtn.onclick = function() {
+                        importIssue(issue, addBtn);
+                    };
+
+                    listItem.appendChild(titleDiv);
+                    listItem.appendChild(addBtn);
+                    resultsList.appendChild(listItem);
+                });
+            })
+            .catch(error => {
+                statusDiv.style.display = 'none';
+                resultsList.innerHTML = `<div class="alert alert-danger">${error.message}</div>`;
+            });
+    });
+
+    function importIssue(issue, btnElement) {
+        btnElement.disabled = true;
+        btnElement.innerText = 'Salvando...';
+
+        const payload = {
+            title: `[GitHub] ${issue.title}`,
+            description: `Issue #${issue.number} criada por @${issue.user.login}.\n\n${issue.body || 'Sem descrição.'}`,
+            external_url: issue.html_url
+        };
+
+        fetch("{% url 'api_task_import' %}", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            },
+            body: JSON.stringify(payload)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if(data.status === 'success') {
+                btnElement.className = 'btn btn-sm btn-success';
+                btnElement.innerText = 'Adicionada!';
+                // Opcional: Atualizar a página para ver a nova tarefa na lista
+                setTimeout(() => window.location.reload(), 1000);
+            } else {
+                alert('Erro: ' + data.message);
+                btnElement.disabled = false;
+                btnElement.innerText = 'Adicionar ao OneTask';
+            }
+        })
+        .catch(err => {
+            alert('Erro de conexão ao salvar.');
+            btnElement.disabled = false;
+            btnElement.innerText = 'Adicionar ao OneTask';
+        });
+    }
+});
+</script>
+{% endblock %}

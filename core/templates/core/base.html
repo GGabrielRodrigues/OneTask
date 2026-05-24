@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OneTask - Seu Gerenciador Pessoal</title>
+    <!-- Bootstrap 5 CSS para um layout limpo e moderno -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        /* Estilos customizados básicos */
+        body {
+            background-color: #f8f9fa;
+        }
+        .navbar-brand {
+            font-weight: bold;
+            color: #0d6efd !important;
+        }
+    </style>
+</head>
+<body>
+    <!-- Barra de Navegação -->
+    <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm mb-4">
+        <div class="container">
+            <a class="navbar-brand" href="{% url 'dashboard' %}">✓ OneTask</a>
+            {% if user.is_authenticated %}
+            <div class="d-flex align-items-center">
+                <span class="me-3 text-muted">Olá, {{ user.username }}</span>
+                <!-- Formulário para o Logout (Django exige POST por padrão, ou uma view apropriada) -->
+                <form action="{% url 'logout' %}" method="post" class="d-inline">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-outline-danger btn-sm">Sair</button>
+                </form>
+            </div>
+            {% endif %}
+        </div>
+    </nav>
+
+    <!-- Área de Conteúdo Principal -->
+    <main class="container">
+        {% block content %}
+        <!-- O conteúdo específico de cada página entra aqui -->
+        {% endblock %}
+    </main>
+
+    <!-- Bootstrap 5 JS Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    {% block scripts %}
+    <!-- Espaço para scripts adicionais -->
+    {% endblock %}
+</body>
+</html>
