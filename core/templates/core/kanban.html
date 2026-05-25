@@ -1,0 +1,171 @@
+{% extends 'core/base.html' %}
+{% block nav_kanban %}active{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h3 class="mb-0"><i class="bi bi-kanban me-2" style="color:var(--tn-primary);"></i>Quadro Kanban</h3>
+        <small class="text-muted">Arraste os cards para mover entre os status</small>
+    </div>
+    <div>
+        <a href="{% url 'task_create' %}" class="btn btn-primary btn-sm me-2">
+            <i class="bi bi-plus-lg me-1"></i>Nova Tarefa
+        </a>
+        <a href="{% url 'status_list' %}" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-tags me-1"></i>Gerenciar Status
+        </a>
+    </div>
+</div>
+
+{% if not columns %}
+<div class="text-center py-5">
+    <i class="bi bi-tags" style="font-size:3rem; color:var(--tn-text-muted);"></i>
+    <p class="mt-3 text-muted">Nenhum status configurado. <a href="{% url 'status_list' %}">Crie seus status</a> para começar!</p>
+</div>
+{% else %}
+<div class="kanban-board" id="kanbanBoard">
+    {% for col in columns %}
+    <div class="kanban-column"
+         data-status-id="{{ col.status.id }}"
+         ondragover="handleDragOver(event, this)"
+         ondragleave="handleDragLeave(event, this)"
+         ondrop="handleDrop(event, this)">
+
+        <div class="kanban-column-header">
+            <div class="kanban-column-dot" style="background-color: {{ col.status.color }};"></div>
+            <span class="kanban-column-title">{{ col.status.name }}</span>
+            <span class="kanban-column-count">{{ col.tasks.count }}</span>
+        </div>
+
+        <div class="kanban-drop-zone" id="dropzone-{{ col.status.id }}">
+            {% for task in col.tasks %}
+            <div class="kanban-card mb-2"
+                 draggable="true"
+                 data-task-id="{{ task.id }}"
+                 ondragstart="handleDragStart(event, this)"
+                 ondragend="handleDragEnd(event, this)">
+
+                <div class="kanban-card-title">{{ task.title }}</div>
+                <div class="kanban-card-meta">
+                    <span class="badge" style="background-color: {{ col.status.color }}20; color: {{ col.status.color }}; font-size:0.65rem;">
+                        {{ col.status.name }}
+                    </span>
+                    {% if task.due_date %}
+                        {% if task.due_date < now %}
+                        <span class="kanban-card-due overdue">
+                            <i class="bi bi-exclamation-circle"></i> {{ task.due_date|date:"d/m" }}
+                        </span>
+                        {% else %}
+                        <span class="kanban-card-due">
+                            <i class="bi bi-clock"></i> {{ task.due_date|date:"d/m H:i" }}
+                        </span>
+                        {% endif %}
+                    {% endif %}
+                    {% if task.origin == 'GitHub' %}
+                    <span style="color:var(--tn-text-muted); font-size:0.7rem;"><i class="bi bi-github"></i></span>
+                    {% endif %}
+                </div>
+
+                <!-- Card actions -->
+                <div class="d-flex gap-1 mt-2">
+                    <a href="{% url 'task_update' task.id %}" class="btn btn-sm btn-outline-secondary" style="font-size:0.7rem; padding:0.1rem 0.4rem;">
+                        <i class="bi bi-pencil"></i>
+                    </a>
+                    <a href="{% url 'task_delete' task.id %}" class="btn btn-sm btn-outline-danger" style="font-size:0.7rem; padding:0.1rem 0.4rem;">
+                        <i class="bi bi-trash"></i>
+                    </a>
+                </div>
+            </div>
+            {% empty %}
+            <div class="text-center py-3" style="color:var(--tn-text-muted); font-size:0.8rem;">
+                <i class="bi bi-inbox"></i><br>Vazio
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+const csrfToken = '{{ csrf_token }}';
+let draggedCard = null;
+let sourceColumnId = null;
+
+function handleDragStart(event, el) {
+    draggedCard = el;
+    sourceColumnId = el.closest('.kanban-column').dataset.statusId;
+    el.classList.add('dragging');
+    event.dataTransfer.effectAllowed = 'move';
+    event.dataTransfer.setData('text/plain', el.dataset.taskId);
+}
+
+function handleDragEnd(event, el) {
+    el.classList.remove('dragging');
+    document.querySelectorAll('.kanban-column').forEach(col => col.classList.remove('drag-over'));
+    document.querySelectorAll('.kanban-drop-zone').forEach(z => z.classList.remove('drag-over'));
+}
+
+function handleDragOver(event, col) {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = 'move';
+    col.classList.add('drag-over');
+    col.querySelector('.kanban-drop-zone').classList.add('drag-over');
+}
+
+function handleDragLeave(event, col) {
+    // Evita flickering ao passar sobre filhos
+    if (!col.contains(event.relatedTarget)) {
+        col.classList.remove('drag-over');
+        col.querySelector('.kanban-drop-zone').classList.remove('drag-over');
+    }
+}
+
+function handleDrop(event, col) {
+    event.preventDefault();
+    col.classList.remove('drag-over');
+    col.querySelector('.kanban-drop-zone').classList.remove('drag-over');
+
+    const targetStatusId = col.dataset.statusId;
+    if (!draggedCard || targetStatusId === sourceColumnId) return;
+
+    const taskId = draggedCard.dataset.taskId;
+
+    // Move o card visualmente de imediato (UX)
+    const dropZone = col.querySelector('.kanban-drop-zone');
+    const emptyMsg = dropZone.querySelector('.text-center');
+    if (emptyMsg) emptyMsg.remove();
+    dropZone.appendChild(draggedCard);
+
+    // Atualiza o badge de status no card
+    const badge = draggedCard.querySelector('.badge');
+    if (badge) {
+        // Pega nome e cor da coluna de destino
+        const header = col.querySelector('.kanban-column-header');
+        const dot = header.querySelector('.kanban-column-dot');
+        const titleEl = header.querySelector('.kanban-column-title');
+        const newColor = dot.style.backgroundColor;
+        const newName = titleEl.innerText;
+        badge.style.backgroundColor = newColor + '33';
+        badge.style.color = newColor;
+        badge.innerText = newName;
+    }
+
+    // Persiste no backend
+    fetch(`/api/task/${taskId}/status/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+        body: JSON.stringify({ status_id: targetStatusId })
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.status !== 'success') {
+            console.error('Erro ao atualizar status:', data.message);
+        }
+    })
+    .catch(err => console.error('Erro de conexão:', err));
+}
+</script>
+{% endblock %}

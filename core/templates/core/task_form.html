@@ -4,29 +4,51 @@
 <div class="row justify-content-center">
     <div class="col-md-8">
         <div class="card shadow-sm border-0">
-            <div class="card-header bg-white">
-                <h4 class="mb-0">{{ title }}</h4>
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-pencil-square me-2" style="color:var(--tn-primary);"></i>{{ title }}
+                </h5>
             </div>
             <div class="card-body">
                 <form method="post">
                     {% csrf_token %}
-                    
-                    {% for field in form %}
+
+                    <!-- Título -->
                     <div class="mb-3">
-                        <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
-                        {{ field }}
-                        {% if field.help_text %}
-                            <div class="form-text">{{ field.help_text }}</div>
-                        {% endif %}
-                        {% for error in field.errors %}
-                            <div class="text-danger small mt-1">{{ error }}</div>
-                        {% endfor %}
+                        <label for="{{ form.title.id_for_label }}" class="form-label">{{ form.title.label }}</label>
+                        {{ form.title }}
+                        {% for error in form.title.errors %}<div class="text-danger small mt-1">{{ error }}</div>{% endfor %}
                     </div>
-                    {% endfor %}
-                    
-                    <div class="d-flex justify-content-end mt-4">
-                        <a href="{% url 'dashboard' %}" class="btn btn-secondary me-2">Cancelar</a>
-                        <button type="submit" class="btn btn-primary">Salvar Tarefa</button>
+
+                    <!-- Descrição -->
+                    <div class="mb-3">
+                        <label for="{{ form.description.id_for_label }}" class="form-label">{{ form.description.label }}</label>
+                        {{ form.description }}
+                    </div>
+
+                    <!-- Status e Data lado a lado -->
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label for="{{ form.status.id_for_label }}" class="form-label">{{ form.status.label }}</label>
+                            {{ form.status }}
+                            {% for error in form.status.errors %}<div class="text-danger small mt-1">{{ error }}</div>{% endfor %}
+                        </div>
+                        <div class="col-md-6">
+                            <label for="{{ form.due_date.id_for_label }}" class="form-label">
+                                {{ form.due_date.label }}
+                                <small class="text-muted">(opcional)</small>
+                            </label>
+                            {{ form.due_date }}
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-end mt-4 gap-2">
+                        <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary">
+                            <i class="bi bi-x-lg me-1"></i>Cancelar
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-lg me-1"></i>Salvar Tarefa
+                        </button>
                     </div>
                 </form>
             </div>

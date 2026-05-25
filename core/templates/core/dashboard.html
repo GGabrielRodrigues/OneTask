@@ -1,56 +1,46 @@
 {% extends 'core/base.html' %}
+{% block nav_dashboard %}active{% endblock %}
 
 {% block content %}
 <div class="row mb-4">
-    <div class="col-12">
-        <h3 class="mb-3 text-secondary">Relatório Gerencial</h3>
+    <div class="col-12 d-flex justify-content-between align-items-center mb-3">
+        <h3 class="mb-0">Relatório Gerencial</h3>
+        <div>
+            <a href="{% url 'task_create' %}" class="btn btn-primary btn-sm me-2">
+                <i class="bi bi-plus-lg me-1"></i>Nova Tarefa
+            </a>
+            <button class="btn btn-dark btn-sm" data-bs-toggle="modal" data-bs-target="#githubModal">
+                <i class="bi bi-github me-1"></i>Importar do GitHub
+            </button>
+        </div>
     </div>
-    
-    <!-- Cards de Resumo -->
+
+    <!-- Cards de Resumo Dinâmicos -->
     <div class="col-md-3 mb-3">
-        <div class="card bg-primary text-white shadow-sm h-100">
+        <div class="card shadow-sm h-100" style="border-left: 3px solid var(--tn-primary) !important;">
             <div class="card-body">
-                <h5 class="card-title">Total</h5>
-                <h2 class="display-6">{{ total_tasks }}</h2>
+                <h6 class="card-title text-muted mb-1">Total de Tarefas</h6>
+                <h2 class="display-6 mb-0" style="color:var(--tn-primary);">{{ total_tasks }}</h2>
             </div>
         </div>
     </div>
+    {% for status in statuses %}
     <div class="col-md-3 mb-3">
-        <div class="card bg-success text-white shadow-sm h-100">
+        <div class="card shadow-sm h-100" style="border-left: 3px solid {{ status.color }} !important;">
             <div class="card-body">
-                <h5 class="card-title">Concluídas</h5>
-                <h2 class="display-6">{{ completed_tasks }}</h2>
+                <h6 class="card-title text-muted mb-1">{{ status.name }}</h6>
+                <h2 class="display-6 mb-0" style="color:{{ status.color }};">{{ status.task_count|default:0 }}</h2>
             </div>
         </div>
     </div>
-    <div class="col-md-3 mb-3">
-        <div class="card bg-warning text-dark shadow-sm h-100">
-            <div class="card-body">
-                <h5 class="card-title">Em Andamento</h5>
-                <h2 class="display-6">{{ in_progress_tasks }}</h2>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-3 mb-3">
-        <div class="card bg-danger text-white shadow-sm h-100">
-            <div class="card-body">
-                <h5 class="card-title">Pendentes</h5>
-                <h2 class="display-6">{{ pending_tasks }}</h2>
-            </div>
-        </div>
-    </div>
+    {% endfor %}
 </div>
 
 <div class="row">
     <div class="col-12">
         <div class="card shadow-sm border-0">
-            <div class="card-header bg-white d-flex justify-content-between align-items-center py-3">
-                <h4 class="mb-0">Minhas Tarefas</h4>
-                <div>
-                    <a href="{% url 'task_create' %}" class="btn btn-primary">Nova Tarefa</a>
-                    <!-- O modal do GitHub será feito em breve -->
-                    <button class="btn btn-dark" data-bs-toggle="modal" data-bs-target="#githubModal">Importar do GitHub</button>
-                </div>
+            <div class="card-header d-flex justify-content-between align-items-center py-3">
+                <h5 class="mb-0"><i class="bi bi-list-task me-2"></i>Minhas Tarefas</h5>
             </div>
             <div class="card-body p-0">
                 <div class="table-responsive">
@@ -59,6 +49,7 @@
                             <tr>
                                 <th>Título</th>
                                 <th>Status</th>
+                                <th>Entrega</th>
                                 <th>Origem</th>
                                 <th>Ações</th>
                             </tr>
@@ -68,12 +59,28 @@
                             <tr>
                                 <td>{{ task.title }}</td>
                                 <td>
-                                    <span class="badge 
-                                        {% if task.status == 'Concluída' %}bg-success
-                                        {% elif task.status == 'Em Andamento' %}bg-warning text-dark
-                                        {% else %}bg-danger{% endif %}">
-                                        {{ task.status }}
+                                    {% if task.status %}
+                                    <span class="badge" style="background-color: {{ task.status.color }}; color: #16161e;">
+                                        {{ task.status.name }}
                                     </span>
+                                    {% else %}
+                                    <span class="badge bg-secondary">Sem status</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if task.due_date %}
+                                        {% if task.due_date < now %}
+                                            <span style="color: var(--tn-pink); font-size: 0.8rem;">
+                                                <i class="bi bi-exclamation-circle me-1"></i>{{ task.due_date|date:"d/m/Y H:i" }}
+                                            </span>
+                                        {% else %}
+                                            <span style="color: var(--tn-cyan); font-size: 0.8rem;">
+                                                <i class="bi bi-clock me-1"></i>{{ task.due_date|date:"d/m/Y H:i" }}
+                                            </span>
+                                        {% endif %}
+                                    {% else %}
+                                        <span class="text-muted" style="font-size:0.8rem;">—</span>
+                                    {% endif %}
                                 </td>
                                 <td>
                                     {% if task.origin == 'GitHub' %}
@@ -86,14 +93,19 @@
                                     {% endif %}
                                 </td>
                                 <td>
-                                    <a href="{% url 'task_update' task.id %}" class="btn btn-sm btn-outline-primary">Editar</a>
-                                    <a href="{% url 'task_delete' task.id %}" class="btn btn-sm btn-outline-danger">Excluir</a>
+                                    <a href="{% url 'task_update' task.id %}" class="btn btn-sm btn-outline-primary">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                    <a href="{% url 'task_delete' task.id %}" class="btn btn-sm btn-outline-danger">
+                                        <i class="bi bi-trash"></i>
+                                    </a>
                                 </td>
                             </tr>
                             {% empty %}
                             <tr>
-                                <td colspan="4" class="text-center py-4 text-muted">
-                                    Nenhuma tarefa encontrada. Comece adicionando uma nova!
+                                <td colspan="5" class="text-center py-5 text-muted">
+                                    <i class="bi bi-inbox" style="font-size:2rem;"></i>
+                                    <p class="mt-2">Nenhuma tarefa ainda. Comece criando uma!</p>
                                 </td>
                             </tr>
                             {% endfor %}
@@ -104,44 +116,80 @@
         </div>
     </div>
 </div>
+
 <!-- Modal GitHub Import -->
 <div class="modal fade" id="githubModal" tabindex="-1" aria-labelledby="githubModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-lg">
     <div class="modal-content border-0 shadow">
-      <div class="modal-header bg-dark text-white border-bottom-0 pb-0">
-        <h5 class="modal-title" id="githubModalLabel"><i class="bi bi-github"></i> Importar do GitHub</h5>
+      <div class="modal-header border-bottom-0 pb-0">
+        <h5 class="modal-title" id="githubModalLabel"><i class="bi bi-github me-2"></i>Importar do GitHub</h5>
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
-      
+
       <!-- Nav Tabs -->
-      <div class="bg-dark px-3">
-          <ul class="nav nav-tabs border-bottom-0" id="githubTabs" role="tablist">
+      <div class="px-3 pt-2">
+          <ul class="nav nav-tabs" id="githubTabs" role="tablist">
             <li class="nav-item" role="presentation">
-              <button class="nav-link active text-white" id="issues-tab" data-bs-toggle="tab" data-bs-target="#issues-pane" type="button" role="tab">Issues (Repositório)</button>
+              <button class="nav-link active" id="issues-tab" data-bs-toggle="tab" data-bs-target="#issues-pane" type="button" role="tab">
+                <i class="bi bi-bug me-1"></i>Issues (Repositório)
+              </button>
             </li>
             <li class="nav-item" role="presentation">
-              <button class="nav-link text-white" id="kanban-tab" data-bs-toggle="tab" data-bs-target="#kanban-pane" type="button" role="tab">Kanban (Organização)</button>
+              <button class="nav-link" id="kanban-tab" data-bs-toggle="tab" data-bs-target="#kanban-pane" type="button" role="tab">
+                <i class="bi bi-kanban me-1"></i>Kanban (Organização)
+              </button>
             </li>
           </ul>
       </div>
 
       <div class="modal-body pt-3">
-        <div class="mb-4">
-            <label class="form-label">Personal Access Token (Obrigatório para Kanban / Org Privada)</label>
-            <input type="password" id="githubTokenInput" class="form-control" placeholder="Cole seu token aqui" value="{{ github_pat }}">
-            <div class="form-text">Configure via variável GITHUB_PAT no .env</div>
+
+        <!-- Token section -->
+        <div class="mb-4 p-3 rounded" style="background:var(--tn-bg-dark); border: 1px solid var(--tn-border);">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <label class="form-label mb-0">
+                    <i class="bi bi-key me-1" style="color:var(--tn-primary);"></i>
+                    Personal Access Token (PAT)
+                </label>
+                <div class="form-check form-switch mb-0">
+                    <input class="form-check-input" type="checkbox" id="useCustomTokenSwitch">
+                    <label class="form-check-label text-muted" for="useCustomTokenSwitch" style="font-size:0.8rem;">Usar token diferente</label>
+                </div>
+            </div>
+
+            <!-- Token do .env (padrão) -->
+            <div id="envTokenInfo">
+                {% if github_pat %}
+                <p class="text-muted mb-0" style="font-size:0.8rem;">
+                    <i class="bi bi-check-circle-fill" style="color:var(--tn-green);"></i>
+                    Token configurado via variável <code>GITHUB_PAT</code> no <code>.env</code>. Pronto para uso!
+                </p>
+                {% else %}
+                <p class="mb-0" style="font-size:0.8rem; color:var(--tn-orange);">
+                    <i class="bi bi-exclamation-triangle-fill me-1"></i>
+                    Nenhum token configurado no <code>.env</code>. Configure a variável <code>GITHUB_PAT</code> ou use um token customizado.
+                </p>
+                {% endif %}
+            </div>
+
+            <!-- Campo de token customizado (oculto por padrão) -->
+            <div id="customTokenField" style="display:none; margin-top:0.75rem;">
+                <input type="password" id="githubTokenInput" class="form-control" placeholder="Cole seu token aqui (ghp_...)">
+            </div>
         </div>
 
         <div class="tab-content" id="githubTabContent">
             <!-- TAB 1: ISSUES -->
             <div class="tab-pane fade show active" id="issues-pane" role="tabpanel" tabindex="0">
                 <div class="mb-3">
-                    <label class="form-label">Repositório (Formato: dono/nome)</label>
+                    <label class="form-label">Repositório (formato: dono/nome)</label>
                     <div class="input-group">
                         <input type="text" id="githubRepoInput" class="form-control" placeholder="ex: facebook/react">
-                        <button class="btn btn-primary" id="btnSearchGithub">Buscar Issues</button>
+                        <button class="btn btn-primary" id="btnSearchGithub">
+                            <i class="bi bi-search me-1"></i>Buscar Issues
+                        </button>
                     </div>
-                    <div class="form-text">Buscamos as issues abertas no repositório informado (REST API).</div>
+                    <div class="form-text">Busca issues abertas via REST API.</div>
                 </div>
             </div>
 
@@ -154,18 +202,20 @@
                     </div>
                     <div class="col-md-6">
                         <label class="form-label">Número do Projeto</label>
-                        <input type="number" id="githubProjectInput" class="form-control" placeholder="ex: 1">
+                        <input type="number" id="githubProjectInput" class="form-control" placeholder="ex: 2">
                     </div>
                 </div>
-                <button class="btn btn-primary w-100 mb-3" id="btnSearchKanban">Buscar Minhas Tasks no Kanban</button>
-                <div class="form-text text-center mb-3">Buscamos tasks atribuídas a você neste projeto (GraphQL API). O token precisa de escopo read:project.</div>
+                <button class="btn btn-primary w-100 mb-2" id="btnSearchKanban">
+                    <i class="bi bi-search me-1"></i>Buscar Tasks no Kanban
+                </button>
+                <div class="form-text text-center">Token precisa dos escopos: <code>read:project</code>, <code>read:org</code>, <code>repo</code>.</div>
             </div>
         </div>
-        
-        <!-- Área de Loading/Feedback -->
+
+        <!-- Loading -->
         <div id="githubStatus" class="text-center my-3" style="display: none;">
             <div class="spinner-border text-primary" role="status"></div>
-            <p class="mt-2 text-muted" id="githubStatusText">Buscando tarefas no GitHub...</p>
+            <p class="mt-2 text-muted" id="githubStatusText">Buscando...</p>
         </div>
 
         <!-- Filtro Local (Kanban) -->
@@ -173,16 +223,14 @@
             <div class="d-flex justify-content-between align-items-center mb-2">
                 <div class="form-check form-switch">
                     <input class="form-check-input" type="checkbox" id="kanbanOnlyMineSwitch" checked>
-                    <label class="form-check-label text-white" for="kanbanOnlyMineSwitch">Mostrar apenas minhas tarefas</label>
+                    <label class="form-check-label" for="kanbanOnlyMineSwitch">Mostrar apenas minhas tarefas</label>
                 </div>
             </div>
-            <input type="text" id="kanbanFilterInput" class="form-control bg-dark text-white border-secondary" placeholder="🔍 Pesquisar task por título ou nome de usuário (assignee)...">
+            <input type="text" id="kanbanFilterInput" class="form-control" placeholder="🔍 Pesquisar por título ou assignee...">
         </div>
 
         <!-- Lista de Resultados -->
-        <div class="list-group" id="githubResultsList">
-            <!-- As issues/tasks aparecerão aqui via JavaScript -->
-        </div>
+        <div class="list-group" id="githubResultsList"></div>
       </div>
     </div>
   </div>
@@ -192,87 +240,95 @@
 {% block scripts %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    const btnSearch = document.getElementById('btnSearchGithub');
-    const inputRepo = document.getElementById('githubRepoInput');
     const statusDiv = document.getElementById('githubStatus');
     const statusText = document.getElementById('githubStatusText');
     const resultsList = document.getElementById('githubResultsList');
-    
-    // Obter o token CSRF gerado pelo Django (se houver form na tela ou do cookie)
-    // Para facilitar, vamos gerar uma string pura aqui
     const csrfToken = '{{ csrf_token }}';
+    const envPat = '{{ github_pat }}';
+
+    // ===== TOKEN LOGIC =====
+    const useCustomSwitch = document.getElementById('useCustomTokenSwitch');
+    const customTokenField = document.getElementById('customTokenField');
+
+    useCustomSwitch.addEventListener('change', function() {
+        customTokenField.style.display = this.checked ? 'block' : 'none';
+        if (!this.checked) {
+            document.getElementById('githubTokenInput').value = '';
+        }
+    });
+
+    function getToken() {
+        if (useCustomSwitch.checked) {
+            return document.getElementById('githubTokenInput').value.trim();
+        }
+        return envPat;
+    }
+
+    // ===== ISSUES SEARCH =====
+    const btnSearch = document.getElementById('btnSearchGithub');
+    const inputRepo = document.getElementById('githubRepoInput');
 
     btnSearch.addEventListener('click', function() {
         const repoPath = inputRepo.value.trim();
-        const githubToken = document.getElementById('githubTokenInput').value.trim();
-        
-        if(!repoPath || !repoPath.includes('/')) {
-            alert('Por favor, insira o dono e o repositório no formato: dono/repo');
+        if (!repoPath || !repoPath.includes('/')) {
+            alert('Por favor, insira no formato: dono/repo');
             return;
         }
 
         resultsList.innerHTML = '';
         statusDiv.style.display = 'block';
-        statusText.innerText = 'Buscando issues no repositório...';
+        statusText.innerText = 'Buscando issues...';
 
+        const token = getToken();
         const fetchHeaders = {};
-        if (githubToken) {
-            fetchHeaders['Authorization'] = `Bearer ${githubToken}`;
-        }
+        if (token) fetchHeaders['Authorization'] = `Bearer ${token}`;
 
         fetch(`https://api.github.com/repos/${repoPath}/issues`, { headers: fetchHeaders })
-            .then(response => {
-                if(!response.ok) throw new Error('Repositório não encontrado ou limite de API excedido/Falha de Autenticação.');
-                return response.json();
-            })
+            .then(r => { if (!r.ok) throw new Error('Repositório não encontrado ou falha de autenticação.'); return r.json(); })
             .then(data => {
                 statusDiv.style.display = 'none';
-                
-                if(data.length === 0) {
-                    resultsList.innerHTML = '<div class="alert alert-info">Nenhuma issue aberta encontrada neste repositório.</div>';
+                if (data.length === 0) {
+                    resultsList.innerHTML = '<div class="alert alert-info">Nenhuma issue aberta encontrada.</div>';
                     return;
                 }
-
                 data.forEach(issue => {
-                    if(issue.pull_request) return;
-                    renderGithubResultItem(issue.title, `#${issue.number} por ${issue.user.login}`, issue.html_url, issue.body || 'Sem descrição.');
+                    if (issue.pull_request) return;
+                    renderResultItem(issue.title, `#${issue.number} por ${issue.user.login}`, issue.html_url, issue.body || 'Sem descrição.');
                 });
             })
-            .catch(error => {
+            .catch(err => {
                 statusDiv.style.display = 'none';
-                resultsList.innerHTML = `<div class="alert alert-danger">${error.message}</div>`;
+                resultsList.innerHTML = `<div class="alert alert-danger">${err.message}</div>`;
             });
     });
 
+    // ===== KANBAN SEARCH =====
     const btnSearchKanban = document.getElementById('btnSearchKanban');
-    const inputOrg = document.getElementById('githubOrgInput');
-    const inputProject = document.getElementById('githubProjectInput');
     const kanbanFilterContainer = document.getElementById('kanbanLocalFilter');
     const kanbanFilterInput = document.getElementById('kanbanFilterInput');
 
-    // Quando clicar na aba Issues, esconde o filtro local
     document.getElementById('issues-tab').addEventListener('click', () => {
         kanbanFilterContainer.style.display = 'none';
     });
 
     btnSearchKanban.addEventListener('click', function() {
-        const orgName = inputOrg.value.trim();
-        const projectNumber = parseInt(inputProject.value.trim());
-        const githubToken = document.getElementById('githubTokenInput').value.trim();
+        const orgName = document.getElementById('githubOrgInput').value.trim();
+        const projectNumber = parseInt(document.getElementById('githubProjectInput').value.trim());
+        const token = getToken();
 
-        if (!githubToken) {
-            alert('O Token (PAT) é obrigatório para buscar em projetos Kanban (GraphQL).');
+        if (!token) {
+            alert('Token é obrigatório para buscar no Kanban. Configure o .env ou ative "Usar token diferente".');
             return;
         }
         if (!orgName || isNaN(projectNumber)) {
-            alert('Por favor, informe a Organização e o Número do Projeto corretamente.');
+            alert('Informe a Organização e o Número do Projeto.');
             return;
         }
 
         resultsList.innerHTML = '';
         kanbanFilterContainer.style.display = 'none';
         statusDiv.style.display = 'block';
-        statusText.innerText = 'Consultando GraphQL do GitHub (trazendo TODAS as tasks)...';
+        statusText.innerText = 'Consultando GraphQL do GitHub...';
 
         const query = `
         query ($org: String!, $projectNumber: Int!) {
@@ -284,25 +340,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 nodes {
                   type
                   content {
-                    ... on Issue {
-                      title
-                      body
-                      url
-                      number
-                      assignees(first: 10) { nodes { login } }
-                    }
-                    ... on PullRequest {
-                      title
-                      body
-                      url
-                      number
-                      assignees(first: 10) { nodes { login } }
-                    }
-                    ... on DraftIssue {
-                      title
-                      body
-                      assignees(first: 10) { nodes { login } }
-                    }
+                    ... on Issue { title body url number assignees(first: 10) { nodes { login } } }
+                    ... on PullRequest { title body url number assignees(first: 10) { nodes { login } } }
+                    ... on DraftIssue { title body assignees(first: 10) { nodes { login } } }
                   }
                 }
               }
@@ -312,168 +352,105 @@ document.addEventListener('DOMContentLoaded', function() {
 
         fetch('https://api.github.com/graphql', {
             method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${githubToken}`,
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                query: query,
-                variables: { org: orgName, projectNumber: projectNumber }
-            })
+            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ query, variables: { org: orgName, projectNumber } })
         })
-        .then(response => response.json())
+        .then(r => r.json())
         .then(data => {
             statusDiv.style.display = 'none';
-            if (data.errors) {
-                throw new Error(data.errors[0].message);
-            }
+            if (data.errors) throw new Error(data.errors[0].message);
 
             const myLogin = data.data.viewer.login;
             const project = data.data.organization.projectV2;
-            if (!project) throw new Error('Projeto Kanban não encontrado ou sem permissão.');
+            if (!project) throw new Error('Projeto não encontrado ou sem permissão.');
 
             const items = project.items.nodes;
-            
-            console.log("Itens do Kanban:", items);
-
             if (items.length === 0) {
-                resultsList.innerHTML = `<div class="alert alert-warning">O projeto Kanban "${project.title}" foi encontrado, mas está VAZIO ou os itens são incompatíveis.</div>`;
+                resultsList.innerHTML = `<div class="alert alert-warning">Projeto encontrado, mas vazio.</div>`;
                 return;
             }
 
-            // Mostrar filtro
-            kanbanFilterContainer.style.display = 'block';
-            kanbanFilterInput.value = '';
+            const isAssignedToMe = (c) => c?.assignees?.nodes?.some(a => a.login.toLowerCase() === myLogin.toLowerCase()) ?? false;
 
-            // Função auxiliar para verificar se é do usuário
-            const isAssignedToMe = (content) => {
-                if (!content || !content.assignees || !content.assignees.nodes) return false;
-                return content.assignees.nodes.some(a => a.login.toLowerCase() === myLogin.toLowerCase());
-            };
-
-            // Ordenar: Minhas tasks primeiro
             items.sort((a, b) => {
-                const aMine = isAssignedToMe(a.content);
-                const bMine = isAssignedToMe(b.content);
-                if (aMine && !bMine) return -1;
-                if (!aMine && bMine) return 1;
-                return 0;
+                const am = isAssignedToMe(a.content), bm = isAssignedToMe(b.content);
+                return am === bm ? 0 : am ? -1 : 1;
             });
 
-            // Guardar itens renderizados para o filtro
+            kanbanFilterContainer.style.display = 'block';
+            kanbanFilterInput.value = '';
             window.currentKanbanItems = [];
 
             items.forEach(item => {
-                const content = item.content;
-                if (!content || !content.title) return; // Ignora itens sem título (ex: Redacted)
-                
-                const url = content.url || '#';
-                const numStr = content.number ? `#${content.number}` : '(Rascunho/Épico)';
-                
-                // Extrair assignees
-                let assigneesList = [];
-                if (content.assignees && content.assignees.nodes) {
-                    assigneesList = content.assignees.nodes.map(a => a.login);
-                }
-                const assigneesText = assigneesList.length > 0 ? assigneesList.join(', ') : 'Ninguém';
-                
-                // Destacar se for meu
-                const isMine = isAssignedToMe(content);
-                const badgeHtml = isMine ? `<span class="badge bg-success ms-2">É seu!</span>` : '';
+                const c = item.content;
+                if (!c || !c.title) return;
 
-                const subtitle = `Kanban ${numStr} - Assinado por: <strong>${assigneesText}</strong> ${badgeHtml}`;
-                
-                // Renderizar na tela
-                const listItem = document.createElement('div');
-                // IMPORTANTE: Adicionamos apenas classes base, a lógica de d-flex/d-none será controlada pelo filtro
-                listItem.className = 'list-group-item justify-content-between align-items-center flex-wrap gap-2 kanban-item';
-                
+                const url = c.url || '#';
+                const numStr = c.number ? `#${c.number}` : '(Rascunho/Épico)';
+                const assignees = c.assignees?.nodes?.map(a => a.login) ?? [];
+                const assigneesText = assignees.length > 0 ? assignees.join(', ') : 'Ninguém';
+                const isMine = isAssignedToMe(c);
+                const badge = isMine ? `<span class="badge ms-1" style="background:var(--tn-green);color:#16161e;">É seu!</span>` : '';
+                const subtitle = `Kanban ${numStr} · Assignees: <strong>${assigneesText}</strong>${badge}`;
+
+                const el = document.createElement('div');
+                el.className = 'list-group-item justify-content-between align-items-start flex-wrap gap-2';
+
                 const titleDiv = document.createElement('div');
-                titleDiv.innerHTML = `<strong>${content.title}</strong> <br><small class="text-muted">${subtitle}</small>`;
-                
+                titleDiv.innerHTML = `<strong>${c.title}</strong><br><small class="text-muted">${subtitle}</small>`;
+
                 const addBtn = document.createElement('button');
-                addBtn.className = 'btn btn-sm btn-primary';
+                addBtn.className = 'btn btn-sm btn-primary mt-1';
                 addBtn.innerText = 'Adicionar ao OneTask';
-                addBtn.onclick = function() {
-                    importIssue({ title: content.title, body: content.body || 'Sem descrição.', html_url: url }, addBtn);
-                };
+                addBtn.onclick = () => importIssue({ title: c.title, body: c.body || '', html_url: url }, addBtn);
 
-                listItem.appendChild(titleDiv);
-                listItem.appendChild(addBtn);
-                resultsList.appendChild(listItem);
+                el.appendChild(titleDiv);
+                el.appendChild(addBtn);
+                resultsList.appendChild(el);
 
-                // Salva no array global para facilitar o filtro
                 window.currentKanbanItems.push({
-                    element: listItem,
-                    searchText: (content.title + " " + assigneesText).toLowerCase(),
-                    isMine: isMine
+                    element: el,
+                    searchText: (c.title + ' ' + assigneesText).toLowerCase(),
+                    isMine
                 });
             });
-            
-            if(window.currentKanbanItems.length === 0) {
-                 resultsList.innerHTML = `<div class="alert alert-warning">Itens encontrados, mas nenhum possui formato de Issue/PR/Draft compatível.</div>`;
-                 kanbanFilterContainer.style.display = 'none';
+
+            if (window.currentKanbanItems.length === 0) {
+                resultsList.innerHTML = `<div class="alert alert-warning">Nenhum item compatível encontrado.</div>`;
+                kanbanFilterContainer.style.display = 'none';
             } else {
-                 // Força a aplicação inicial dos filtros para respeitar o switch "Apenas Minhas"
-                 applyKanbanFilters();
+                applyKanbanFilters();
             }
         })
-        .catch(error => {
+        .catch(err => {
             statusDiv.style.display = 'none';
-            resultsList.innerHTML = `<div class="alert alert-danger">Erro no GraphQL: ${error.message}</div>`;
+            resultsList.innerHTML = `<div class="alert alert-danger">Erro GraphQL: ${err.message}</div>`;
         });
     });
 
-    // Função centralizada para aplicar os filtros
     function applyKanbanFilters() {
         const term = kanbanFilterInput.value.toLowerCase();
-        const onlyMineSwitch = document.getElementById('kanbanOnlyMineSwitch');
-        const onlyMine = onlyMineSwitch ? onlyMineSwitch.checked : false;
-
-        if (window.currentKanbanItems) {
-            window.currentKanbanItems.forEach(item => {
-                let show = true;
-                
-                if (onlyMine && !item.isMine) {
-                    show = false;
-                }
-                if (term && !item.searchText.includes(term)) {
-                    show = false;
-                }
-                
-                if (show) {
-                    item.element.classList.remove('d-none');
-                    item.element.classList.add('d-flex');
-                } else {
-                    item.element.classList.remove('d-flex');
-                    item.element.classList.add('d-none');
-                }
-            });
-        }
+        const onlyMine = document.getElementById('kanbanOnlyMineSwitch').checked;
+        window.currentKanbanItems?.forEach(item => {
+            const show = (!onlyMine || item.isMine) && (!term || item.searchText.includes(term));
+            item.element.classList.toggle('d-flex', show);
+            item.element.classList.toggle('d-none', !show);
+        });
     }
 
-    // Escutar eventos
     kanbanFilterInput.addEventListener('input', applyKanbanFilters);
     document.getElementById('kanbanOnlyMineSwitch').addEventListener('change', applyKanbanFilters);
 
-    // Função utilitária para renderizar um item na lista, já que reaproveitamos para os dois fluxos
-    function renderGithubResultItem(title, subtitle, url, bodyDesc) {
-        const listItem = document.createElement('div');
-        listItem.className = 'list-group-item d-flex justify-content-between align-items-center flex-wrap gap-2';
-        
-        const titleDiv = document.createElement('div');
-        titleDiv.innerHTML = `<strong>${title}</strong> <br><small class="text-muted">${subtitle}</small>`;
-        
-        const addBtn = document.createElement('button');
-        addBtn.className = 'btn btn-sm btn-primary';
-        addBtn.innerText = 'Adicionar ao OneTask';
-        addBtn.onclick = function() {
-            importIssue({ title: title, body: bodyDesc, html_url: url }, addBtn);
-        };
-
-        listItem.appendChild(titleDiv);
-        listItem.appendChild(addBtn);
-        resultsList.appendChild(listItem);
+    function renderResultItem(title, subtitle, url, bodyDesc) {
+        const el = document.createElement('div');
+        el.className = 'list-group-item d-flex justify-content-between align-items-center flex-wrap gap-2';
+        el.innerHTML = `<div><strong>${title}</strong><br><small class="text-muted">${subtitle}</small></div>`;
+        const btn = document.createElement('button');
+        btn.className = 'btn btn-sm btn-primary';
+        btn.innerText = 'Adicionar ao OneTask';
+        btn.onclick = () => importIssue({ title, body: bodyDesc, html_url: url }, btn);
+        el.appendChild(btn);
+        resultsList.appendChild(el);
     }
 
     function importIssue(issue, btnElement) {
@@ -481,29 +458,23 @@ document.addEventListener('DOMContentLoaded', function() {
         btnElement.innerText = 'Salvando...';
 
         const numberStr = issue.number ? `#${issue.number}` : '';
-        const authorStr = (issue.user && issue.user.login) ? ` criada por @${issue.user.login}` : '';
+        const authorStr = issue.user?.login ? ` criada por @${issue.user.login}` : '';
         const descHeader = (numberStr || authorStr) ? `Tarefa ${numberStr}${authorStr}.\n\n` : '';
-
-        const payload = {
-            title: `[GitHub] ${issue.title}`,
-            description: `${descHeader}${issue.body || 'Sem descrição.'}`,
-            external_url: issue.html_url || issue.url || '#'
-        };
 
         fetch("{% url 'api_task_import' %}", {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': csrfToken
-            },
-            body: JSON.stringify(payload)
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+            body: JSON.stringify({
+                title: `[GitHub] ${issue.title}`,
+                description: `${descHeader}${issue.body || 'Sem descrição.'}`,
+                external_url: issue.html_url || issue.url || '#'
+            })
         })
-        .then(response => response.json())
+        .then(r => r.json())
         .then(data => {
-            if(data.status === 'success') {
+            if (data.status === 'success') {
                 btnElement.className = 'btn btn-sm btn-success';
-                btnElement.innerText = 'Adicionada!';
-                // Opcional: Atualizar a página para ver a nova tarefa na lista
+                btnElement.innerText = '✓ Adicionada!';
                 setTimeout(() => window.location.reload(), 1000);
             } else {
                 alert('Erro: ' + data.message);
@@ -511,8 +482,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 btnElement.innerText = 'Adicionar ao OneTask';
             }
         })
-        .catch(err => {
-            alert('Erro de conexão ao salvar.');
+        .catch(() => {
+            alert('Erro de conexão.');
             btnElement.disabled = false;
             btnElement.innerText = 'Adicionar ao OneTask';
         });

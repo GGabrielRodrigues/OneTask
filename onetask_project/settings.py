@@ -30,7 +30,7 @@ SECRET_KEY = 'django-insecure-107nod$*!pnx*-5)-v1-@ooes)(5v@r102^&z_4oxak9(w9(k)
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']  # Permite qualquer host (ajuste em produção real)
 
 
 # Application definition
@@ -121,6 +121,15 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
 STATIC_URL = 'static/'
+STATIC_ROOT = BASE_DIR / 'staticfiles'  # Usado pelo collectstatic no Docker
+
+# Formato de data/hora para o campo due_date (datetime-local do HTML5)
+DATETIME_INPUT_FORMATS = [
+    '%Y-%m-%dT%H:%M',
+    '%Y-%m-%d %H:%M:%S',
+    '%Y-%m-%d %H:%M',
+    '%Y-%m-%d',
+]
 
 # Auth Settings
 LOGIN_URL = 'login'
