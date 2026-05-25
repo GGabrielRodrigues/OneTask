@@ -1,3 +1,4 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
@@ -7,13 +8,137 @@
     <!-- Bootstrap 5 CSS para um layout limpo e moderno -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
-        /* Estilos customizados básicos */
+        /* Tema TokyoNight */
+        :root {
+            --tn-bg: #1a1b26;
+            --tn-bg-dark: #16161e;
+            --tn-card: #24283b;
+            --tn-border: #414868;
+            --tn-text: #c0caf5;
+            --tn-text-muted: #565f89;
+            --tn-primary: #7aa2f7; /* Azul Neon */
+            --tn-pink: #f7768e;   /* Rosa Neon */
+            --tn-green: #9ece6a;
+            --tn-orange: #ff9e64;
+            --tn-cyan: #7dcfff;
+        }
+
         body {
-            background-color: #f8f9fa;
+            background-color: var(--tn-bg);
+            color: var(--tn-text);
+        }
+        
+        h1, h2, h3, h4, h5, h6 {
+            color: var(--tn-text);
+        }
+
+        /* Navbar */
+        .navbar {
+            background-color: var(--tn-bg-dark) !important;
+            border-bottom: 1px solid var(--tn-border);
         }
         .navbar-brand {
             font-weight: bold;
-            color: #0d6efd !important;
+            color: var(--tn-primary) !important;
+            text-shadow: 0 0 8px rgba(122, 162, 247, 0.4);
+        }
+        .navbar .text-muted {
+            color: var(--tn-text-muted) !important;
+        }
+
+        /* Cards and Modals */
+        .card, .modal-content {
+            background-color: var(--tn-card) !important;
+            border: 1px solid var(--tn-border) !important;
+            color: var(--tn-text);
+        }
+        .card-header, .modal-header {
+            background-color: var(--tn-bg-dark) !important;
+            border-bottom: 1px solid var(--tn-border) !important;
+            color: var(--tn-text);
+        }
+        .modal-title { color: var(--tn-text); }
+        .btn-close { filter: invert(1) grayscale(100%) brightness(200%); }
+
+        /* Inputs & Tables */
+        .form-control, .form-select {
+            background-color: var(--tn-bg) !important;
+            border: 1px solid var(--tn-border) !important;
+            color: var(--tn-text) !important;
+        }
+        .form-control:focus, .form-select:focus {
+            box-shadow: 0 0 0 0.25rem rgba(122, 162, 247, 0.25) !important;
+            border-color: var(--tn-primary) !important;
+        }
+        .table {
+            color: var(--tn-text);
+        }
+        .table-light th {
+            background-color: var(--tn-bg-dark) !important;
+            color: var(--tn-text) !important;
+            border-bottom: 1px solid var(--tn-border) !important;
+        }
+        .table tbody tr td {
+            background-color: var(--tn-card) !important;
+            border-bottom: 1px solid var(--tn-border);
+            color: var(--tn-text);
+        }
+        .table-hover tbody tr:hover td {
+            background-color: var(--tn-border) !important;
+        }
+
+        /* Buttons & Badges (Neon Effect) */
+        .btn-primary {
+            background-color: var(--tn-primary);
+            border-color: var(--tn-primary);
+            color: var(--tn-bg);
+            box-shadow: 0 0 10px rgba(122, 162, 247, 0.4);
+        }
+        .btn-primary:hover {
+            background-color: #688be0;
+            border-color: #688be0;
+        }
+        .btn-outline-primary {
+            color: var(--tn-primary);
+            border-color: var(--tn-primary);
+        }
+        .btn-outline-primary:hover {
+            background-color: var(--tn-primary);
+            color: var(--tn-bg);
+            box-shadow: 0 0 10px rgba(122, 162, 247, 0.4);
+        }
+        .btn-outline-danger {
+            color: var(--tn-pink);
+            border-color: var(--tn-pink);
+        }
+        .btn-outline-danger:hover {
+            background-color: var(--tn-pink);
+            color: var(--tn-bg);
+            box-shadow: 0 0 10px rgba(247, 118, 142, 0.4);
+        }
+        .btn-danger {
+            background-color: var(--tn-pink);
+            border-color: var(--tn-pink);
+            box-shadow: 0 0 10px rgba(247, 118, 142, 0.4);
+        }
+        .bg-primary { background-color: var(--tn-primary) !important; }
+        .bg-success { background-color: var(--tn-green) !important; color: var(--tn-bg-dark) !important; }
+        .bg-danger { background-color: var(--tn-pink) !important; }
+        .bg-warning { background-color: var(--tn-orange) !important; color: var(--tn-bg-dark) !important; }
+        .bg-dark { background-color: var(--tn-bg-dark) !important; border: 1px solid var(--tn-border); }
+        .text-dark { color: var(--tn-bg-dark) !important; }
+        .text-white { color: #ffffff !important; }
+        .text-secondary, .text-muted, .form-text { color: var(--tn-text-muted) !important; }
+        
+        .form-control::placeholder, .form-select::placeholder {
+            color: var(--tn-text-muted) !important;
+            opacity: 0.7;
+        }
+        
+        .list-group-item {
+            background-color: var(--tn-bg);
+            border-color: var(--tn-border);
+            color: var(--tn-text);
         }
     </style>
 </head>
@@ -21,7 +146,10 @@
     <!-- Barra de Navegação -->
     <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm mb-4">
         <div class="container">
-            <a class="navbar-brand" href="{% url 'dashboard' %}">✓ OneTask</a>
+            <a class="navbar-brand d-flex align-items-center gap-2" href="{% url 'dashboard' %}">
+                <img src="{% static 'core/images/logo.png' %}" alt="OneTask Logo" width="40" height="40" style="border-radius: 8px;">
+                OneTask
+            </a>
             {% if user.is_authenticated %}
             <div class="d-flex align-items-center">
                 <span class="me-3 text-muted">Olá, {{ user.username }}</span>

@@ -2,6 +2,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.http import JsonResponse
 from django.contrib.auth.decorators import login_required
 import json
+import os
 from .models import Task
 from .forms import TaskForm
 
@@ -20,12 +21,15 @@ def dashboard(request):
     pending_tasks = tasks.filter(status='Pendente').count()
     in_progress_tasks = tasks.filter(status='Em Andamento').count()
     
+    github_pat = os.environ.get('GITHUB_PAT', '')
+    
     context = {
         'tasks': tasks,
         'total_tasks': total_tasks,
         'completed_tasks': completed_tasks,
         'pending_tasks': pending_tasks,
         'in_progress_tasks': in_progress_tasks,
+        'github_pat': github_pat,
     }
     return render(request, 'core/dashboard.html', context)
 

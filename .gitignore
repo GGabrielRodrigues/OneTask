@@ -1,0 +1,45 @@
+# Ambientes Virtuais
+venv/
+env/
+.env/
+.venv/
+
+# Variáveis de Ambiente e Segredos
+.env
+.env.local
+.env.*
+
+# Banco de Dados SQLite (ignorar para não commitar dados locais)
+db.sqlite3
+*.sqlite3
+
+# Arquivos gerados pelo Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Arquivos temporários e logs
+*.log
+logs/
+tmp/
+temp/
+
+# Arquivos de Sistema Operacional (macOS / Windows / Linux)
+.DS_Store
+Thumbs.db
+Desktop.ini
+.directory
+
+# Configurações de IDEs e Editores
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Arquivos estáticos coletados (se usar collectstatic no futuro)
+staticfiles/
+collected_static/
+
+# Media / Uploads locais (se houver no futuro)
+media/
